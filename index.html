@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FloatingClock - 悬浮时钟 | 精准计时，快人一步</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(26, 26, 46, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+            padding: 1rem 0;
+            transition: all 0.3s ease;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #64b5f6, #42a5f5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a:hover {
+            color: #64b5f6;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(45deg, #64b5f6, #42a5f5);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            padding: 0 2rem;
+            z-index: 2;
+            position: relative;
+        }
+
+        .hero-title {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #ffffff, #e3f2fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: fadeInUp 1s ease;
+        }
+
+        .hero-subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            color: #b0bec5;
+            animation: fadeInUp 1s ease 0.2s both;
+        }
+
+        .hero-description {
+            font-size: 1.1rem;
+            margin-bottom: 3rem;
+            color: #90a4ae;
+            animation: fadeInUp 1s ease 0.4s both;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeInUp 1s ease 0.6s both;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #1976d2, #42a5f5);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 10px 30px rgba(25, 118, 210, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(25, 118, 210, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 1rem 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-3px);
+        }
+
+        .floating-elements {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .floating-clock {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background: rgba(100, 181, 246, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(100, 181, 246, 0.3);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #64b5f6;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .floating-clock:nth-child(1) {
+            top: 20%;
+            right: 10%;
+            animation-delay: 0s;
+        }
+
+        .floating-clock:nth-child(2) {
+            bottom: 30%;
+            left: 10%;
+            animation-delay: 2s;
+        }
+
+        .floating-clock:nth-child(3) {
+            top: 50%;
+            right: 20%;
+            animation-delay: 4s;
+        }
+
+        .section {
+            padding: 5rem 0;
+            position: relative;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #ffffff, #e3f2fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #90a4ae;
+            margin-bottom: 4rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #64b5f6, transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, #1976d2, #42a5f5);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 1.5rem;
+            box-shadow: 0 10px 30px rgba(25, 118, 210, 0.3);
+        }
+
+        .feature-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #ffffff;
+        }
+
+        .feature-description {
+            color: #90a4ae;
+            line-height: 1.6;
+        }
+
+        .comparison-table {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 3rem 0;
+        }
+
+        .table-header {
+            background: linear-gradient(45deg, #1976d2, #42a5f5);
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .table-header h3 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .table-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0;
+        }
+
+        .table-column {
+            padding: 2rem 1.5rem;
+            text-align: center;
+        }
+
+        .table-column:nth-child(2) {
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .column-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #64b5f6;
+        }
+
+        .feature-list {
+            list-style: none;
+            text-align: left;
+        }
+
+        .feature-list li {
+            margin-bottom: 0.8rem;
+            padding-left: 1.5rem;
+            position: relative;
+            color: #b0bec5;
+        }
+
+        .feature-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .feature-list li.unavailable {
+            opacity: 0.5;
+        }
+
+        .feature-list li.unavailable::before {
+            content: '✗';
+            color: #f44336;
+        }
+
+        .download-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .download-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .download-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .download-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(45deg, #4caf50, #66bb6a);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin: 0 auto 1rem;
+        }
+
+        .google-play .download-icon {
+            background: linear-gradient(45deg, #ff5722, #ff7043);
+        }
+
+        .footer {
+            background: rgba(15, 15, 35, 0.9);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 3rem 0 2rem;
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .footer-text {
+            color: #90a4ae;
+            margin-bottom: 1rem;
+        }
+
+        .language-toggle {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            color: white;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .language-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .en-text { display: none; }
+        body.en .zh-text { display: none; }
+        body.en .en-text { display: block; }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .table-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .table-column:nth-child(2) {
+                border: none;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .floating-clock {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">FloatClock</div>
+            <ul class="nav-links">
+                <li><a href="#home" class="zh-text">首页</a><a href="#home" class="en-text">Home</a></li>
+                <li><a href="#features" class="zh-text">功能特点</a><a href="#features" class="en-text">Features</a></li>
+                <li><a href="#instructions" class="zh-text">使用说明</a><a href="#instructions" class="en-text">Instructions</a></li>
+                <li><a href="#download" class="zh-text">下载</a><a href="#download" class="en-text">Download</a></li>
+            </ul>
+            <button class="language-toggle" onclick="toggleLanguage()">EN</button>
+        </div>
+    </nav>
+
+    <section id="home" class="hero">
+        <div class="floating-elements">
+            <div class="floating-clock">12:34:56</div>
+            <div class="floating-clock">23:45:67.890</div>
+            <div class="floating-clock">08:21:43</div>
+        </div>
+        <div class="hero-content">
+            <h1 class="hero-title">
+                <span class="zh-text">悬浮时钟</span>
+                <span class="en-text">FloatingClock</span>
+            </h1>
+            <p class="hero-subtitle">
+                <span class="zh-text">精准计时，快人一步</span>
+                <span class="en-text">Precise Timing, One Step Ahead</span>
+            </p>
+            <p class="hero-description">
+                <span class="zh-text">支持毫秒级精度、无障碍悬浮显示的专业计时工具，让你在秒杀抢购中占得先机</span>
+                <span class="en-text">Professional timing tool with millisecond precision and accessible floating display, giving you the edge in flash sales and purchases</span>
+            </p>
+            <div class="cta-buttons">
+                <a href="#download" class="btn-primary">
+                    <span class="zh-text">立即下载</span>
+                    <span class="en-text">Download Now</span>
+                </a>
+                <a href="#features" class="btn-secondary">
+                    <span class="zh-text">了解更多</span>
+                    <span class="en-text">Learn More</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="section">
+        <div class="container">
+            <h2 class="section-title">
+                <span class="zh-text">核心功能</span>
+                <span class="en-text">Core Features</span>
+            </h2>
+            <p class="section-subtitle">
+                <span class="zh-text">专为精准计时而设计的强大功能</span>
+                <span class="en-text">Powerful features designed for precise timing</span>
+            </p>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⏰</div>
+                    <h3 class="feature-title">
+                        <span class="zh-text">双时制支持</span>
+                        <span class="en-text">Dual Time Format</span>
+                    </h3>
+                    <p class="feature-description">
+                        <span class="zh-text">完美支持12小时制和24小时制，满足不同用户的时间显示习惯</span>
+                        <span class="en-text">Perfect support for both 12-hour and 24-hour formats, meeting different user preferences</span>
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3 class="feature-title">
+                        <span class="zh-text">毫秒级精度</span>
+                        <span class="en-text">Millisecond Precision</span>
+                    </h3>
+                    <p class="feature-description">
+                        <span class="zh-text">自定义毫秒值显示，精确到0.001秒，为专业计时需求提供极致精度</span>
+                        <span class="en-text">Custom millisecond display, accurate to 0.001 seconds, providing ultimate precision for professional timing needs</span>
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔄</div>
+                    <h3 class="feature-title">
+                        <span class="zh-text">无障碍悬浮</span>
+                        <span class="en-text">Accessible Floating</span>
+                    </h3>
+                    <p class="feature-description">
+                        <span class="zh-text">支持画中画模式，即使在屏蔽悬浮窗的应用中也能正常显示秒表</span>
+                        <span class="en-text">Supports picture-in-picture mode, displaying stopwatch even in apps that block floating windows</span>
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3 class="feature-title">
+                        <span class="zh-text">个性化定制</span>
+                        <span class="en-text">Personalization</span>
+                    </h3>
+                    <p class="feature-description">
+                        <span class="zh-text">自定义时间颜色、背景透明度和字体大小，打造专属的视觉体验</span>
+                        <span class="en-text">Customize time color, background transparency, and font size for a personalized visual experience</span>
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3 class="feature-title">
+                        <span class="zh-text">秒杀利器</span>
+                        <span class="en-text">Flash Sale Tool</span>
+                    </h3>
+                    <p class="feature-description">
+                        <span class="zh-text">专为秒杀抢购场景优化，精准计时让你快人一步，抢占先机</span>
+                        <span class="en-text">Optimized for flash sales, precise timing gives you the edge to act first</span>
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3 class="feature-title">
+                        <span class="zh-text">轻量高效</span>
+                        <span class="en-text">Lightweight & Efficient</span>
+                    </h3>
+                    <p class="feature-description">
+                        <span class="zh-text">占用资源极少，运行流畅稳定，不影响手机其他应用的性能表现</span>
+                        <span class="en-text">Minimal resource usage, smooth and stable operation without affecting other apps' performance</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="comparison-table">
+                <div class="table-header">
+                    <h3>
+                        <span class="zh-text">版本功能对比</span>
+                        <span class="en-text">Version Comparison</span>
+                    </h3>
+                    <p>
+                        <span class="zh-text">选择最适合你的版本</span>
+                        <span class="en-text">Choose the version that's right for you</span>
+                    </p>
+                </div>
+                <div class="table-content">
+                    <div class="table-column">
+                        <h4 class="column-title">
+                            <span class="zh-text">功能特性</span>
+                            <span class="en-text">Features</span>
+                        </h4>
+                        <ul class="feature-list">
+                            <li><span class="zh-text">基础秒表功能</span><span class="en-text">Basic stopwatch</span></li>
+                            <li><span class="zh-text">悬浮窗显示</span><span class="en-text">Floating display</span></li>   
+                            <li><span class="zh-text">画中画显示</span><span class="en-text">Picture-in-picture mode</span></li>
+                            <li><span class="zh-text">0.001s精度</span><span class="en-text">Millisecond precision</span></li>
+                            <li><span class="zh-text">12h/24h时制切换</span><span class="en-text">12h/24h format switch</span></li>
+                            <li><span class="zh-text">自定义颜色</span><span class="en-text">Custom colors</span></li>
+                            <li><span class="zh-text">透明度调节</span><span class="en-text">Transparency control</span></li>
+                            <li><span class="zh-text">字体大小调节</span><span class="en-text">Font size adjustment</span></li>
+                            <li><span class="zh-text">高级计时器</span><span class="en-text">Advanced timer</span></li>
+                            <li><span class="zh-text">多语言支持</span><span class="en-text">Cloud sync</span></li>
+                        </ul>
+                    </div>
+                    <div class="table-column">
+                        <h4 class="column-title">
+                            <span class="zh-text">免费版</span>
+                            <span class="en-text">Free Version</span>
+                        </h4>
+                        <ul class="feature-list">
+                            <li>✓</li>
+                            <li>✓</li>
+                            <li>✓</li>
+                            <li class="unavailable">✗</li>
+                            <li class="unavailable">✗</li>
+                            <li class="unavailable">✗</li>
+                            <li class="unavailable">✗</li>
+                            <li class="unavailable">✗</li>
+                            <li class="unavailable">✗</li>
+                            <li class="unavailable">✗</li>
+                        </ul>
+                    </div>
+                    <div class="table-column">
+                        <h4 class="column-title">
+                            <span class="zh-text">付费版</span>
+                            <span class="en-text">Pro Version</span>
+                        </h4>
+                        <ul class="feature-list">
+                            <li>✓</li>
+                            <li>✓</li>
+                            <li>✓</li>
+                            <li>✓</li>
+                            <li>✓</li>
+                            <li>✓</li>
+                            <li>✓</li>
+                            <li>✓</li>
+                            <li>✓</li>
+                            <li>✓</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="instructions" class="section">
+        <div class="container">
+            <h2 class="section-title">
+                <span class="zh-text">使用说明</span>
+                <span class="en-text">How to Use</span>
+            </h2>
+            <p class="section-subtitle">
+                <span class="zh-text">简单几步，轻松上手</span>
+                <span class="en-text">Get started in just a few simple steps</span>
+            </p>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">1️⃣</div>
+                    <h3 class="feature-title">
+                        <span class="zh-text">安装启动</span>
+                        <span class="en-text">Install & Launch</span>
+                    </h3>
+                    <p class="feature-description">
+                        <span class="zh-text">下载安装FloatClock，首次启动需要授权悬浮窗权限</span>
+                        <span class="en-text">Download and install FloatClock, grant floating window permission on first launch</span>
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">2️⃣</div>
+                    <h3 class="feature-title">
+                        <span class="zh-text">基础设置</span>
+                        <span class="en-text">Basic Setup</span>
+                    </h3>
+                    <p class="feature-description">
+                        <span class="zh-text">选择12h或24h时制，设置悬浮窗位置和显示样式</span>
+                        <span class="en-text">Choose 12h or 24h format, set floating window position and display style</span>
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">3️⃣</div>
+                    <h3 class="feature-title">
+                        <span class="zh-text">个性定制</span>
+                        <span class="en-text">Customize</span>
+                    </h3>
+                    <p class="feature-description">
+                        <span class="zh-text">调整时间颜色、背景透明度和字体大小，打造专属体验</span>
+                        <span class="en-text">Adjust time color, background transparency, and font size for a personalized experience</span>
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">4️⃣</div>
+                    <h3 class="feature-title">
+                        <span class="zh-text">画中画模式</span>
+                        <span class="en-text">PIP Mode</span>
+                    </h3>
+                    <p class="feature-description">
+                        <span class="zh-text">在设置中开启画中画模式，适用于屏蔽悬浮窗的应用场景</span>
+                        <span class="en-text">Enable picture-in-picture mode in settings, useful for apps that block floating windows</span>
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">5️⃣</div>
+                    <h3 class="feature-title">
+                        <span class="zh-text">毫秒精度</span>
+                        <span class="en-text">Millisecond Precision</span>
+                    </h3>
+                    <p class="feature-description">
+                        <span class="zh-text">开启毫秒显示功能，精确到0.001秒，满足专业计时需求</span>
+                        <span class="en-text">Enable millisecond display for 0.001s precision, meeting professional timing requirements</span>
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">6️⃣</div>
+                    <h3 class="feature-title">
+                        <span class="zh-text">秒杀应用</span>
+                        <span class="en-text">Flash Sale Use</span>
+                    </h3>
+                    <p class="feature-description">
+                        <span class="zh-text">在购物应用中开启悬浮时钟，精准把握秒杀时机，抢购成功率倍增</span>
+                        <span class="en-text">Use floating clock in shopping apps to precisely time flash sales and significantly increase success rate</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="download" class="section">
+        <div class="container">
+            <h2 class="section-title">
+                <span class="zh-text">立即下载</span>
+                <span class="en-text">Download Now</span>
+            </h2>
+            <p class="section-subtitle">
+                <span class="zh-text">选择适合你的下载方式</span>
+                <span class="en-text">Choose your preferred download method</span>
+            </p>
+
+            <div class="download-grid">
+                <div class="download-card">
+                    <div class="download-icon">📱</div>
+                    <h3 class="feature-title">
+                        <span class="zh-text">立即下载</span>
+                        <span class="en-text">Download</span>
+                    </h3>
+                    <p class="feature-description">
+                        <span class="zh-text">通过应用宝、华为应用市场等渠道下载，速度更快更稳定</span>
+                        <span class="en-text">Download via App Store, Huawei AppGallery for faster and more stable downloads</span>
+                    </p>
+                    <a href="https://pan.quark.cn/s/5f89f60d3fe0" class="btn-primary" style="margin-top: 1rem;">
+                        <span class="zh-text">立即下载</span>
+                        <span class="en-text">Download</span>
+                    </a>
+                </div>
+
+                <div class="download-card google-play">
+                    <div class="download-icon">🎮</div>
+                    <h3 class="feature-title">Google Play</h3>
+                    <p class="feature-description">
+                        <span class="zh-text">通过Google Play商店下载，享受官方正版保障和及时更新</span>
+                        <span class="en-text">Download from Google Play Store for official version guarantee and timely updates</span>
+                    </p>
+                    <a href="#" class="btn-primary" style="margin-top: 1rem;">
+                        <span class="zh-text">Google Play</span>
+                        <span class="en-text">Google Play</span>
+                    </a>
+                </div>
+
+                <div class="download-card">
+                    <div class="download-icon">💎</div>
+                    <h3 class="feature-title">
+                        <span class="zh-text">专业版</span>
+                        <span class="en-text">Pro Version</span>
+                    </h3>
+                    <p class="feature-description">
+                        <span class="zh-text">解锁全部功能，享受毫秒精度、个性定制、多语言等高级特性</span>
+                        <span class="en-text">Unlock all features including millisecond precision, customization and advanced functions</span>
+                    </p>
+                    <a href="#" class="btn-primary" style="margin-top: 1rem;">
+                        <span class="zh-text">升级专业版</span>
+                        <span class="en-text">Upgrade to Pro</span>
+                    </a>
+                </div>
+
+                <div class="download-card">
+                    <div class="download-icon">📖</div>
+                    <h3 class="feature-title">
+                        <span class="zh-text">用户手册</span>
+                        <span class="en-text">User Manual</span>
+                    </h3>
+                    <p class="feature-description">
+                        <span class="zh-text">详细的使用教程和常见问题解答，帮助你快速掌握所有功能</span>
+                        <span class="en-text">Detailed tutorials and FAQ to help you quickly master all features</span>
+                    </p>
+                    <a href="#" class="btn-secondary" style="margin-top: 1rem;">
+                        <span class="zh-text">查看手册</span>
+                        <span class="en-text">View Manual</span>
+                    </a>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 3rem; padding: 2rem; background: rgba(255, 255, 255, 0.05); border-radius: 20px; backdrop-filter: blur(20px);">
+                <h3 style="margin-bottom: 1rem; color: #64b5f6;">
+                    <span class="zh-text">系统要求</span>
+                    <span class="en-text">System Requirements</span>
+                </h3>
+                <p style="color: #90a4ae; margin-bottom: 1rem;">
+                    <span class="zh-text">• Android 8.0 及以上版本</span>
+                    <span class="en-text">• Android 8.0 and above</span>
+                </p>
+                <p style="color: #90a4ae; margin-bottom: 1rem;">
+                    <span class="zh-text">• 需要悬浮窗权限</span>
+                    <span class="en-text">• Requires floating window permission</span>
+                </p>
+                <p style="color: #90a4ae;">
+                    <span class="zh-text">• 存储空间: 13MB</span>
+                    <span class="en-text">• Storage: 13MB</span>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-text">
+                <p>
+                    <span class="zh-text">© 2025 FloatClock. 保留所有权利。</span>
+                    <span class="en-text">© 2025 FloatClock. All rights reserved.</span>
+                </p>
+                <p style="margin-top: 1rem;">
+                    <span class="zh-text">精准计时，快人一步 | 让时间成为你的优势</span>
+                    <span class="en-text">Precise Timing, One Step Ahead | Make Time Your Advantage</span>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Language toggle functionality
+        function toggleLanguage() {
+            const body = document.body;
+            const toggleBtn = document.querySelector('.language-toggle');
+            
+            if (body.classList.contains('en')) {
+                body.classList.remove('en');
+                toggleBtn.textContent = 'EN';
+            } else {
+                body.classList.add('en');
+                toggleBtn.textContent = '中文';
+            }
+        }
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Real-time clock for floating elements
+        function updateFloatingClocks() {
+            const clocks = document.querySelectorAll('.floating-clock');
+            const now = new Date();
+            
+            if (clocks[0]) {
+                clocks[0].textContent = now.toLocaleTimeString('en-US', { hour12: false });
+            }
+            
+            if (clocks[1]) {
+                const milliseconds = now.getMilliseconds().toString().padStart(3, '0');
+                clocks[1].textContent = `${now.toLocaleTimeString('en-US', { hour12: false })}.${milliseconds}`;
+            }
+            
+            if (clocks[2]) {
+                clocks[2].textContent = now.toLocaleTimeString('en-US', { hour12: true });
+            }
+        }
+
+        // Update clocks every 10ms for smooth millisecond display
+        setInterval(updateFloatingClocks, 10);
+
+        // Navbar background on scroll
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 50) {
+                navbar.style.background = 'rgba(26, 26, 46, 0.95)';
+            } else {
+                navbar.style.background = 'rgba(26, 26, 46, 0.8)';
+            }
+        });
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe feature cards for scroll animations
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(card);
+        });
+
+        // Initialize
+        updateFloatingClocks();
+    </script>
+</body>
+</html>
